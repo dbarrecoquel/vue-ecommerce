@@ -12,11 +12,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // En dev : redirige /api vers Node.js pour éviter les problèmes CORS
-      '/api': {
-        target: 'http://localhost:3000',
+    '/api': {
+        target: 'http://localhost:3000',  // ← même port que Node
         changeOrigin: true,
-      },
+    },
     },
   },
 })

@@ -15,7 +15,7 @@ export const useProductStore = defineStore('products', ()=> {
         error.value = null
         try{
             const {data} = await productService.getAll(params)
-            currentProduct.value = data.data
+            products.value = data.data
             pagination.value = {total : data.total, page : data.page, pages : data.pages}
         }
         catch (err) {

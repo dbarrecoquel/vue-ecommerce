@@ -6,13 +6,13 @@
       <div class="filters">
         <input v-model="search" placeholder="Rechercher..." @input="debouncedFetch" />
         <select v-model="selectedCategory" @change="fetchProducts">
-          <option value="">Toutes les catégories</option>
+          <option value="">Toutes les categories</option>
           <option v-for="cat in categoryStore.categories" :key="cat._id" :value="cat._id">
             {{ cat.name }}
           </option>
         </select>
-        <input v-model="minPrice" type="number" placeholder="Prix min" @change="fetchProducts" />
-        <input v-model="maxPrice" type="number" placeholder="Prix max" @change="fetchProducts" />
+        <input v-model="minPrice" type="number" min="0" placeholder="Prix min" @change="fetchProducts" />
+        <input v-model="maxPrice" type="number" min="0" placeholder="Prix max" @change="fetchProducts" />
       </div>
     </div>
 
@@ -23,7 +23,7 @@
     </div>
 
     <div v-else-if="productStore.products.length === 0" class="state">
-      Aucun produit trouvé.
+      Aucun produit trouve.
     </div>
 
     <div v-else class="products-grid">
@@ -41,38 +41,30 @@
           <span class="product-card__category">{{ product.category?.name }}</span>
           <h3 class="product-card__name">{{ product.name }}</h3>
           <div class="product-card__footer">
-            <span class="product-card__price">{{ product.price.toFixed(2) }} €</span>
-            <span class="product-card__stock" :class="{ 'out': product.stock === 0 }">
-              {{ product.stock > 0 ? `Stock : ${product.stock}` : 'Épuisé' }}
+            <span class="product-card__price">{{ product.price?.toFixed(2) }} €</span>
+            <span class="product-card__stock" :class="{ out: product.stock === 0 }">
+              {{ product.stock > 0 ? `Stock : ${product.stock}` : 'Epuise' }}
             </span>
           </div>
         </div>
       </RouterLink>
     </div>
 
-    <!-- Pagination -->
     <div v-if="productStore.pagination.pages > 1" class="pagination">
-      <button
-        class="btn btn--ghost"
-        :disabled="page === 1"
-        @click="changePage(page - 1)"
-      >←</button>
+      <button class="btn btn--ghost" :disabled="page === 1" @click="changePage(page - 1)">←</button>
       <span>{{ page }} / {{ productStore.pagination.pages }}</span>
-      <button
-        class="btn btn--ghost"
-        :disabled="page === productStore.pagination.pages"
-        @click="changePage(page + 1)"
-      >→</button>
+      <button class="btn btn--ghost" :disabled="page === productStore.pagination.pages" @click="changePage(page + 1)">→</button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
+import { ref, watch, onMounted } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 import { useProductStore } from '@/stores/productStore.js'
 import { useCategoryStore } from '@/stores/categoryStore.js'
 
+const route = useRoute()
 const productStore = useProductStore()
 const categoryStore = useCategoryStore()
 
@@ -102,7 +94,25 @@ const changePage = (newPage) => {
   fetchProducts()
 }
 
+// Validation prix negatifs
+watch(minPrice, (val) => {
+  if (val !== '' && Number(val) < 0) minPrice.value = 0
+})
+watch(maxPrice, (val) => {
+  if (val !== '' && Number(val) < 0) maxPrice.value = 0
+  if (minPrice.value !== '' && val !== '' && Number(val) < Number(minPrice.value)) {
+    maxPrice.value = minPrice.value
+  }
+})
+
 onMounted(() => {
+  // Pre-remplir les filtres depuis les query params de l'URL
+  if (route.query.category) selectedCategory.value = route.query.category
+  if (route.query.search) search.value = route.query.search
+  if (route.query.minPrice) minPrice.value = route.query.minPrice
+  if (route.query.maxPrice) maxPrice.value = route.query.maxPrice
+  if (route.query.page) page.value = Number(route.query.page)
+
   categoryStore.fetchAll()
   fetchProducts()
 })
@@ -174,9 +184,7 @@ onMounted(() => {
 }
 
 .product-card__footer { display: flex; justify-content: space-between; align-items: center; }
-
 .product-card__price { font-weight: 700; font-size: 1.1rem; }
-
 .product-card__stock { font-size: 0.8rem; color: var(--color-success); }
 .product-card__stock.out { color: var(--color-danger); }
 
